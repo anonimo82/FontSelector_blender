@@ -125,10 +125,21 @@ def get_font_families_from_folder(
 
             filename, ext = os.path.splitext(file)
 
-            if ext in font_formats:
+            if ext.lower() in font_formats:
 
                 filepath = os.path.join(root, file)
-                font = ttLib.TTFont(filepath)
+                # This might cause an exception due to a corrupt font file,
+                # so catch it and continue to the next file
+                if debug:
+                    print(f"FONTSELECTOR --- Checking font : {filepath}")
+                
+                font = None
+                try:
+                    font = ttLib.TTFont(filepath)
+                except Exception as e:
+                    if debug:
+                        print(f"FONTSELECTOR --- Unable to read font : {filepath} - {e}")
+                    continue
                 family = font['name'].getDebugName(1)
 
                 font_datas = {
@@ -375,14 +386,18 @@ def relink_font_objects(debug):
     
     obj_list = []
     
-    # Get text curves
+    # Get text curves, not curves
     for obj in bpy.data.curves:
+        try:
+            obj.font
+        except AttributeError:
+            continue
         obj_list.append(obj)
     
     # Get text strips
     for scn in bpy.data.scenes:
         if scn.sequence_editor:
-            for strip in scn.sequence_editor.sequences_all:
+            for strip in scn.sequence_editor.strips_all:
                 if strip.type == "TEXT":
                     obj_list.append(strip)
     
@@ -399,10 +414,13 @@ def relink_font_objects(debug):
         
         # Missing family
         if index is None:
-            
+
             if debug:
-                print(f"FONTSELECTOR --- Unable to relink : {props.relink_family_name} - {props.relink_type_name}")
-            
+                if props.relink_family_name:
+                    print(f"FONTSELECTOR --- Unable to relink : {props.relink_family_name} - {props.relink_type_name}")
+                else:
+                    print(f"FONTSELECTOR --- Unable to relink : {obj.name}")
+
             props.family_index = -1
             continue
             
