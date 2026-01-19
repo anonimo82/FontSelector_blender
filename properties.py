@@ -57,6 +57,7 @@ class FONTSELECTOR_PR_font_family_properties(bpy.types.PropertyGroup):
     favorite: bpy.props.BoolProperty(
         name = "Favorite",
         update = favorite_callback,
+        options = {"HIDDEN",},
     )
     fonts : bpy.props.CollectionProperty(
         type=FONTSELECTOR_PR_single_font_properties,
@@ -68,6 +69,7 @@ class FONTSELECTOR_PR_properties(bpy.types.PropertyGroup):
 
     font_families : bpy.props.CollectionProperty(
         type = FONTSELECTOR_PR_font_family_properties,
+        options = {"HIDDEN",},
     )
     remove_existing_type_fonts : bpy.props.BoolProperty(
         name = "Remove Blender Type Fonts",
@@ -197,6 +199,10 @@ def change_strips_font(
     # Prevent callback
     font_props.no_callback = True
     
+    # Prevent no active strip
+    if active_strip is None:
+        return False
+
     # Change active font
     active_strip.font = target_font
 
@@ -207,7 +213,7 @@ def change_strips_font(
     self.relink_type_name = self.family_types
     
     # Change selected objects
-    for strip in context.selected_sequences:
+    for strip in context.selected_strips:
         if strip.type == "TEXT":
             
             if strip == active_strip:

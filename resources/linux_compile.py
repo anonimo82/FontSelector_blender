@@ -23,7 +23,7 @@ file_pattern_exclude = [
     ".ffs_db",
     ".build",
 ]
-deploy_path = "/home/tonton/.var/app/org.blender.Blender/config/blender/4.4/extensions/user_default/"
+deploy_path = "/home/tonton/.var/app/org.blender.Blender/config/blender/5.0/extensions/user_default/"
 
 import os, zipfile, shutil, sys
 
