@@ -21,9 +21,12 @@ def open_explorer(filepath):
         # --print-reply argument ensures the explorer opens
         # Seems when explorer closed, it would only open if called twice
         # Printing the reply would called it again i guess
-        cmd = 'dbus-send --session --print-reply --dest=org.freedesktop.FileManager1 '
-        cmd += '--type=method_call /org/freedesktop/FileManager1 '
-        cmd += f'org.freedesktop.FileManager1.ShowItems array:string:"{filepath}" string:""'
+        # cmd = 'dbus-send --session --print-reply --dest=org.freedesktop.FileManager1 '
+        # cmd += '--type=method_call /org/freedesktop/FileManager1 '
+        # cmd += f'org.freedesktop.FileManager1.ShowItems array:string:"{filepath}" string:""'
+
+        parent_path = os.path.dirname(filepath)
+        cmd = 'xdg-open "%s"' % parent_path
 
     elif osys == "Darwin":
         
