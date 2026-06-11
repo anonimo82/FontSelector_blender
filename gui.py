@@ -96,7 +96,8 @@ def draw_text_decoration(col, active_datas, obj, strip=False):
         col_hint = box4.column()
         col_hint.scale_y = 0.75
         col_hint.label(text="1. Create a separate text object for sub/superscript", icon="INFO")
-        col_hint.label(text="2. Select it, choose type below, then click Apply", icon="BLANK1")
+        col_hint.label(text="2. Select both objects, make the sub/superscript active", icon="BLANK1")
+        col_hint.label(text="3. Choose type below, then click Apply", icon="BLANK1")
 
     box4.prop(active_datas, "script_type")
 
@@ -117,7 +118,7 @@ def draw_text_decoration(col, active_datas, obj, strip=False):
 
         note = box4.column()
         note.scale_y = 0.7
-        note.label(text="Moves Z and scales font size. Undo with Ctrl+Z.", icon="ERROR")
+        note.label(text="Moves along local Y and scales font size. Undo with Ctrl+Z.", icon="ERROR")
 
 
 ### Fontselector common panel UI ###

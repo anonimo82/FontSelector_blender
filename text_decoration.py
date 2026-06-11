@@ -1,5 +1,6 @@
 import bpy
 import bmesh
+import mathutils
 
 from .addon_prefs import get_addon_preferences
 
@@ -284,9 +285,9 @@ class FONTSELECTOR_OT_remove_decorations(bpy.types.Operator):
 
 
 class FONTSELECTOR_OT_apply_script(bpy.types.Operator):
-    """Apply superscript or subscript: set font size and Z offset on the active object.
-    Select the sub/superscript text object before running this — the operator
-    reads offset and size factor from its own fontselector properties."""
+    """Apply superscript or subscript: positions the active object at the end of the
+    main text (the other selected FONT object) along its local X axis, and offsets
+    vertically along local Y. Select both objects, make the sub/superscript active."""
     bl_idname = "fontselector.apply_script"
     bl_label = "Apply Script Position"
     bl_options = {'UNDO'}
@@ -309,10 +310,30 @@ class FONTSELECTOR_OT_apply_script(bpy.types.Operator):
         size_factor = props.script_size_factor
         script_type = props.script_type
 
-        # --- Apply Z offset ---
-        # Superscript: move up (+Z), Subscript: move down (-Z)
+        # --- Find the main text object (the other selected FONT object) ---
+        main_obj = None
+        for sel in context.selected_objects:
+            if sel != obj and sel.type == 'FONT':
+                main_obj = sel
+                break
+
+        if main_obj is None:
+            self.report({'WARNING'}, "Select the main text object together with the sub/superscript")
+            return {'CANCELLED'}
+
+        # --- Horizontal: place at the right edge of the main text ---
+        # Get bounding box max X in local space, then bring to world space
+        bb = main_obj.bound_box
+        max_x_local = max(v[0] for v in bb)
+        right_edge_world = main_obj.matrix_world @ mathutils.Vector((max_x_local, 0.0, 0.0))
+
+        # --- Vertical: offset along the main object's local Y axis ---
         sign = 1.0 if script_type == 'SUPERSCRIPT' else -1.0
-        obj.location.z += sign * offset_y
+        local_y = main_obj.matrix_world.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))
+        local_y.normalize()
+
+        # Final position: right edge of main text + vertical offset
+        obj.location = right_edge_world + local_y * sign * offset_y
 
         # --- Apply font size ---
         current_size = obj.data.size
@@ -321,11 +342,11 @@ class FONTSELECTOR_OT_apply_script(bpy.types.Operator):
         if debug:
             print(
                 f"FONTSELECTOR --- Script applied: type={script_type}, "
-                f"offset={sign * offset_y:.3f}, size={obj.data.size:.3f}"
+                f"main={main_obj.name}, offset Y={sign * offset_y:.3f}, size={obj.data.size:.3f}"
             )
 
         label = "Superscript" if script_type == 'SUPERSCRIPT' else "Subscript"
-        self.report({'INFO'}, f"{label} applied — size {obj.data.size:.3f}, offset {sign * offset_y:+.3f} Z")
+        self.report({'INFO'}, f"{label} applied — size {obj.data.size:.3f}, offset {sign * offset_y:+.3f} local Y")
         return {'FINISHED'}
 
 
