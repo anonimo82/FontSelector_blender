@@ -32,6 +32,94 @@ def draw_font_infos(container, active, context):
     op.filepath = font.filepath
 
 
+def draw_text_decoration(col, active_datas, obj, strip=False):
+    """Draw the Text Decoration collapsible panel section."""
+
+    header, panel = col.panel("text_decoration", default_closed=True)
+    header.label(text="Text Decoration")
+
+    if not panel:
+        return
+
+    # ---- Native Blender properties ----
+    box = panel.box()
+    box.label(text="Native", icon="FONT_DATA")
+
+    if not strip:
+        # Underline — native TextCurve prop
+        row = box.row(align=True)
+        row.label(text="Underline")
+        row.prop(obj.data, "use_underline", text="", toggle=True, icon="UNDERLINE")
+
+        # Text Anchor (align_x)
+        row = box.row(align=True)
+        row.label(text="Anchor")
+        row.prop(obj.data, "align_x", text="")
+    else:
+        # Video strips have fewer native options
+        row = box.row()
+        row.label(text="Native options not available for strips", icon="INFO")
+
+    # ---- Decorations (helper objects) — 3D only ----
+    if not strip:
+        box2 = panel.box()
+        box2.label(text="Line Decorations", icon="MESH_PLANE")
+
+        row = box2.row(align=True)
+        row.prop(active_datas, "use_strikethrough", toggle=True, icon="REMOVE")
+        row.prop(active_datas, "use_overline", toggle=True, icon="TRIA_UP")
+
+        # Update / Remove helpers
+        sub = box2.row(align=True)
+        sub.operator("fontselector.update_decorations", text="Update", icon="FILE_REFRESH")
+        sub.operator("fontselector.remove_decorations", text="Remove All", icon="X")
+
+    # ---- Stroke ----
+    if not strip:
+        box3 = panel.box()
+        box3.label(text="Stroke (converts to mesh)", icon="MOD_SOLIDIFY")
+
+        row = box3.row(align=True)
+        row.prop(active_datas, "stroke_thickness")
+        row.operator("fontselector.apply_stroke", text="Apply", icon="DRIVER_DISTANCE")
+
+        note = box3.column()
+        note.scale_y = 0.7
+        note.label(text="Warning: duplicates & converts the object.", icon="ERROR")
+
+    # ---- Subscript / Superscript ----
+    box4 = panel.box()
+    box4.label(text="Sub / Superscript", icon="FONTPREVIEW")
+
+    # Workflow hint when nothing is selected yet
+    if active_datas.script_type == 'NONE':
+        col_hint = box4.column()
+        col_hint.scale_y = 0.75
+        col_hint.label(text="1. Create a separate text object for sub/superscript", icon="INFO")
+        col_hint.label(text="2. Select it, choose type below, then click Apply", icon="BLANK1")
+
+    box4.prop(active_datas, "script_type")
+
+    if active_datas.script_type != 'NONE':
+        sub = box4.column(align=True)
+        sub.prop(active_datas, "script_offset_y")
+        sub.prop(active_datas, "script_size_factor")
+
+        box4.separator(factor=0.5)
+
+        row = box4.row()
+        row.scale_y = 1.2
+        row.operator(
+            "fontselector.apply_script",
+            text="Apply to This Object",
+            icon="DRIVER_TRANSFORM",
+        )
+
+        note = box4.column()
+        note.scale_y = 0.7
+        note.label(text="Moves Z and scales font size. Undo with Ctrl+Z.", icon="ERROR")
+
+
 ### Fontselector common panel UI ###
 def draw_font_selector(self, context):
 
@@ -39,8 +127,10 @@ def draw_font_selector(self, context):
 
     if self.strip:
         active_datas = context.active_strip.fontselector_object_properties
+        obj = None
     else:
         active_datas = context.active_object.data.fontselector_object_properties
+        obj = context.active_object
 
     props = context.window_manager.fontselector_properties
 
@@ -109,8 +199,6 @@ def draw_font_selector(self, context):
         icon="FILE_REFRESH",
     )
 
-    # col.separator()
-
     row = col.row()
     row.prop(active_datas, "family_types", text = "")
 
@@ -128,6 +216,10 @@ def draw_font_selector(self, context):
                 active_datas,
                 context,
             )
+
+    # Text Decoration
+    col.separator()
+    draw_text_decoration(col, active_datas, obj, strip=self.strip)
 
 
 class FONTSELECTOR_panel(bpy.types.Panel):
@@ -213,7 +305,6 @@ class FONTSELECTOR_PT_sequencer_panel(FONTSELECTOR_panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "strip"
-    # bl_parent_id = "STRIP_PT_effect"
     
     strip = True
     

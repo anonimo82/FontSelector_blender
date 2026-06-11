@@ -208,7 +208,6 @@ def change_strips_font(
 
     # Properties to store font in case of index change
     family_name = font_props.font_families[self.family_index].name
-    # active_strip.fontselector_object_properties.relink_family_name = family_name
     self.relink_family_name = family_name
     self.relink_type_name = self.family_types
     
@@ -320,6 +319,36 @@ def family_type_callback(self, context):
     return items
 
 
+# --- Decoration update callbacks ---
+# Defined here (not in text_decoration.py) to avoid circular imports
+# when used as 'update=' in PropertyGroup fields.
+
+def _strikethrough_update(self, context):
+    from . import text_decoration as td
+    obj = context.active_object
+    if obj is None or obj.type != 'FONT':
+        return
+    if self.use_strikethrough:
+        td.place_line_object(context, obj, td.STRIKETHROUGH_SUFFIX,
+                             td.STRIKETHROUGH_Y_FACTOR, td.LINE_THICKNESS)
+    else:
+        td.remove_line_object(obj, td.STRIKETHROUGH_SUFFIX,
+                              get_addon_preferences().debug)
+
+
+def _overline_update(self, context):
+    from . import text_decoration as td
+    obj = context.active_object
+    if obj is None or obj.type != 'FONT':
+        return
+    if self.use_overline:
+        td.place_line_object(context, obj, td.OVERLINE_SUFFIX,
+                             td.OVERLINE_Y_FACTOR, td.LINE_THICKNESS)
+    else:
+        td.remove_line_object(obj, td.OVERLINE_SUFFIX,
+                              get_addon_preferences().debug)
+
+
 class FONTSELECTOR_PR_object_properties(bpy.types.PropertyGroup):
 
     # Search
@@ -373,6 +402,64 @@ class FONTSELECTOR_PR_object_properties(bpy.types.PropertyGroup):
     search_font_names: bpy.props.BoolProperty(
         name = "Search Font Names",
         description = "Search individual fonts names",
+    )
+
+    # ----------------------------------------------------------------
+    # Text Decoration
+    # ----------------------------------------------------------------
+
+    # --- Strikethrough / Overline (helper mesh objects) ---
+    use_strikethrough: bpy.props.BoolProperty(
+        name="Strikethrough",
+        description="Add a strikethrough line helper object aligned to the text",
+        default=False,
+        update=_strikethrough_update,
+    )
+    use_overline: bpy.props.BoolProperty(
+        name="Overline",
+        description="Add an overline helper object aligned to the text",
+        default=False,
+        update=_overline_update,
+    )
+
+    # --- Stroke ---
+    stroke_thickness: bpy.props.FloatProperty(
+        name="Stroke Thickness",
+        description="Wireframe thickness when applying the Stroke operator",
+        default=0.02,
+        min=0.001,
+        max=1.0,
+        subtype='DISTANCE',
+    )
+
+    # --- Subscript / Superscript (informational custom props) ---
+    script_type: bpy.props.EnumProperty(
+        name="Script",
+        description=(
+            "Mark this text as superscript or subscript. "
+            "Apply the suggested offset/size values manually to the object"
+        ),
+        items=[
+            ('NONE',        "None",        "Normal text"),
+            ('SUPERSCRIPT', "Superscript", "Text raised above the baseline"),
+            ('SUBSCRIPT',   "Subscript",   "Text lowered below the baseline"),
+        ],
+        default='NONE',
+    )
+    script_offset_y: bpy.props.FloatProperty(
+        name="Y Offset",
+        description="Suggested Z/Y offset for super/subscript positioning",
+        default=0.4,
+        min=-5.0,
+        max=5.0,
+        subtype='DISTANCE',
+    )
+    script_size_factor: bpy.props.FloatProperty(
+        name="Size Factor",
+        description="Suggested font size multiplier for super/subscript",
+        default=0.6,
+        min=0.05,
+        max=1.0,
     )
 
 
